@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout — TUT TextSwap</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .order-summary { background: white; border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
+  .order-summary .row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.92rem; }
+  .order-summary .row.total { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 12px; font-weight: 700; font-size: 1.05rem; color: var(--navy); }
+  .card-row { display: flex; gap: 10px; }
+  .card-row > div { flex: 1; }
+  .receipt-icon { font-size: 2.6rem; text-align: center; }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="container">
+    <div class="brand">TUT TextSwap<span class="dot">.</span></div>
+    <div class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="browse.html">Browse</a>
+      <a href="sell.html">Sell an item</a>
+      <span id="nav-user"></span>
+    </div>
+  </div>
+</nav>
+
+<section>
+  <div class="container" style="max-width:520px;">
+
+    <div id="checkout-view">
+      <h1 style="text-align:center;">Checkout</h1>
+      <div id="order-summary" class="order-summary"></div>
+
+      <form id="pay-form" class="form-card" style="max-width:100%;">
+        <label for="card-name">Name on card</label>
+        <input id="card-name" type="text" required placeholder="As printed on the card">
+
+        <label for="card-number">Card number</label>
+        <input id="card-number" type="text" required inputmode="numeric" maxlength="19" placeholder="4242 4242 4242 4242">
+
+        <div class="card-row">
+          <div>
+            <label for="card-expiry">Expiry</label>
+            <input id="card-expiry" type="text" required maxlength="5" placeholder="MM/YY">
+          </div>
+          <div>
+            <label for="card-cvc">CVC</label>
+            <input id="card-cvc" type="text" required maxlength="4" placeholder="123">
+          </div>
+        </div>
+
+        <button id="pay-btn" type="submit" class="btn btn-primary btn-block" style="margin-top:20px;">Pay now</button>
+        <div id="form-msg" class="form-msg"></div>
+        <div class="help-text" style="text-align:center; margin-top:10px;">This is a prototype — no real card is charged. Any 16-digit number works.</div>
+      </form>
+    </div>
+
+    <div id="receipt-view" class="form-card" style="display:none;">
+      <div class="receipt-icon">✅</div>
+      <h2 style="text-align:center;">Payment successful</h2>
+      <div id="receipt-body"></div>
+      <a href="browse.html" class="btn btn-navy btn-block" style="margin-top:20px;">Back to Browse</a>
+    </div>
+
+    <div id="empty-view" class="empty-state" style="display:none;"></div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">TUT TextSwap — Phase 1 prototype</div>
+</footer>
+
+<script src="js/firebase-config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/app.js"></script>
+<script>
+const session = DB.requireLogin();
+
+const params = new URLSearchParams(window.location.search);
+const listingId = params.get("id");
+const listing = listingId ? DB.getListingById(listingId) : null;
+
+const checkoutView = document.getElementById("checkout-view");
+const emptyView = document.getElementById("empty-view");
+
+function showEmpty(message) {
+  checkoutView.style.display = "none";
+  emptyView.style.display = "block";
+  emptyView.textContent = message;
+}
+
+if (!listing) {
+  showEmpty("That listing couldn't be found. It may have already been bought, rented, or removed.");
+} else if (listing.status !== "active") {
+  showEmpty(`"${listing.title}" is no longer available — it's already ${listing.status}.`);
+} else if (listing.sellerEmail === session.email) {
+  showEmpty("You can't buy or rent your own listing.");
+} else if (listing.type === "swap") {
+  showEmpty("Swaps are arranged directly with the seller rather than paid for — use \"Contact seller\" on the listing instead.");
+} else {
+  const isRent = listing.type === "rent";
+  const fee = Math.round(listing.price * 0.05 * 100) / 100;
+  document.getElementById("order-summary").innerHTML = `
+    <div class="row"><span>${listing.title}</span><span>${isRent ? "Rent (1 semester)" : "Purchase"}</span></div>
+    <div class="row"><span>Item price</span><span>R${listing.price.toFixed(2)}</span></div>
+    <div class="row"><span>Platform fee (5%)</span><span>R${fee.toFixed(2)} <span style="color:var(--muted);">(included)</span></span></div>
+    <div class="row total"><span>Total due today</span><span>R${listing.price.toFixed(2)}</span></div>
+  `;
+  document.getElementById("pay-btn").textContent = isRent ? `Pay R${listing.price.toFixed(2)} & rent` : `Pay R${listing.price.toFixed(2)} & buy`;
+}
+
+// Auto-formats the card number into groups of 4 as the student types
+document.getElementById("card-number").addEventListener("input", (e) => {
+  e.target.value = e.target.value.replace(/[^\d]/g, "").replace(/(.{4})/g, "$1 ").trim().slice(0, 19);
+});
+// Auto-formats the expiry into MM/YY
+document.getElementById("card-expiry").addEventListener("input", (e) => {
+  let v = e.target.value.replace(/[^\d]/g, "").slice(0, 4);
+  if (v.length > 2) v = v.slice(0, 2) + "/" + v.slice(2);
+  e.target.value = v;
+});
+
+document.getElementById("pay-form").addEventListener("submit", function (e) {
+  e.preventDefault();
+  const msg = document.getElementById("form-msg");
+  const payBtn = document.getElementById("pay-btn");
+  payBtn.disabled = true;
+  payBtn.textContent = "Processing…";
+
+  // Simulates the short delay of a real payment gateway round-trip
+  setTimeout(() => {
+    const result = DB.payForListing({
+      listingId: listing.id,
+      buyerEmail: session.email,
+      cardName: document.getElementById("card-name").value,
+      cardNumber: document.getElementById("card-number").value,
+      expiry: document.getElementById("card-expiry").value,
+      cvc: document.getElementById("card-cvc").value
+    });
+
+    if (!result.ok) {
+      msg.textContent = result.error;
+      msg.className = "form-msg show error";
+      payBtn.disabled = false;
+      payBtn.textContent = isRentLabel();
+      return;
+    }
+
+    const o = result.order;
+    document.getElementById("checkout-view").style.display = "none";
+    document.getElementById("receipt-view").style.display = "block";
+    document.getElementById("receipt-body").innerHTML = `
+      <div class="order-summary">
+        <div class="row"><span>Order</span><span>${o.id}</span></div>
+        <div class="row"><span>Item</span><span>${o.listingTitle}</span></div>
+        <div class="row"><span>Paid with card ending</span><span>•••• ${o.cardLast4}</span></div>
+        <div class="row total"><span>Total paid</span><span>R${o.amount.toFixed(2)}</span></div>
+      </div>
+      <p style="text-align:center; color:var(--muted); font-size:0.88rem;">The seller receives R${o.sellerPayout.toFixed(2)} after TUT TextSwap's 5% fee. ${o.listingType === "rent" ? "Arrange collection and the return date directly with the seller." : "Arrange collection directly with the seller."}</p>
+    `;
+  }, 700);
+});
+
+function isRentLabel() {
+  return listing.type === "rent" ? `Pay R${listing.price.toFixed(2)} & rent` : `Pay R${listing.price.toFixed(2)} & buy`;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sell or rent an item — TUT TextSwap</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="container">
+    <div class="brand">TUT TextSwap<span class="dot">.</span></div>
+    <div class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="browse.html">Browse</a>
+      <a href="sell.html" class="active">Sell an item</a>
+      <span id="nav-user"></span>
+    </div>
+  </div>
+</nav>
+
+<section>
+  <div class="container">
+    <h1 style="text-align:center;">List an item</h1>
+    <p style="text-align:center; color:var(--muted); margin-bottom:28px;">Sell, rent out, or offer a swap on textbooks, laptops or equipment.</p>
+
+    <form id="sell-form" class="form-card">
+      <label for="title">Title</label>
+      <input id="title" type="text" required placeholder="e.g. Programming Fundamentals (Java) — 3rd Ed.">
+
+      <label for="category">Category</label>
+      <select id="category" required>
+        <option value="Textbook">Textbook</option>
+        <option value="Equipment">Equipment</option>
+        <option value="Laptop">Laptop</option>
+      </select>
+
+      <label for="type">Listing type</label>
+      <select id="type" required>
+        <option value="sale">For sale</option>
+        <option value="rent">For rent</option>
+        <option value="swap">For swap</option>
+      </select>
+
+      <label for="price">Price (ZAR)</label>
+      <input id="price" type="number" min="0" required placeholder="e.g. 250">
+
+      <label for="description">Description</label>
+      <textarea id="description" rows="3" required placeholder="Condition, edition, what's included…"></textarea>
+
+      <label for="photo">Cover photo (required)</label>
+      <input id="photo" type="file" accept="image/*" required>
+      <div class="help-text">A photo of the textbook's cover (or the item itself). Listings without a photo won't appear on Browse.</div>
+      <img id="photo-preview" style="display:none; margin-top:10px; max-height:160px; border-radius:8px; border:1px solid var(--line);">
+
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top:20px;">Publish listing</button>
+      <div id="form-msg" class="form-msg"></div>
+    </form>
+  </div>
+</section>
+
+<footer>
+  <div class="container">TUT TextSwap — Phase 1 prototype</div>
+</footer>
+
+<script src="js/firebase-config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/app.js"></script>
+<script>
+const session = DB.requireLogin();
+
+// Resize/compress the chosen photo in the browser before it's stored, so a
+// phone photo (often several MB) doesn't blow through localStorage's quota.
+// Returns a JPEG data URL, or null if no file was chosen.
+function readCoverImage(file) {
+  return new Promise((resolve, reject) => {
+    if (!file) { resolve(null); return; }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Couldn't read that image file."));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("That file doesn't look like a valid image."));
+      img.onload = () => {
+        const maxWidth = 500;
+        const scale = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.8));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+const photoInput = document.getElementById("photo");
+const photoPreview = document.getElementById("photo-preview");
+photoInput.addEventListener("change", async () => {
+  const file = photoInput.files[0];
+  if (!file) { photoPreview.style.display = "none"; return; }
+  try {
+    photoPreview.src = await readCoverImage(file);
+    photoPreview.style.display = "block";
+  } catch (err) {
+    photoPreview.style.display = "none";
+  }
+});
+
+document.getElementById("sell-form").addEventListener("submit", async function (e) {
+  e.preventDefault();
+  const msg = document.getElementById("form-msg");
+  let coverImage;
+  try {
+    coverImage = await readCoverImage(photoInput.files[0]);
+  } catch (err) {
+    msg.textContent = err.message;
+    msg.className = "form-msg show error";
+    return;
+  }
+  const result = DB.addListing({
+    title: document.getElementById("title").value.trim(),
+    category: document.getElementById("category").value,
+    type: document.getElementById("type").value,
+    price: document.getElementById("price").value,
+    description: document.getElementById("description").value.trim(),
+    sellerEmail: session.email,
+    coverImage
+  });
+  if (result.ok) {
+    msg.textContent = "Listing published! Redirecting to Browse…";
+    msg.className = "form-msg show success";
+    setTimeout(() => window.location.href = "browse.html", 1000);
+  } else {
+    msg.textContent = result.error || "Something went wrong.";
+    msg.className = "form-msg show error";
+  }
+});
+</script>
+</body>
+</html>

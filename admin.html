@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin dashboard — TUT TextSwap</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="container">
+    <div class="brand">TUT TextSwap<span class="dot">.</span></div>
+    <div class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="browse.html">Browse</a>
+      <span id="nav-user"></span>
+    </div>
+  </div>
+</nav>
+
+<section>
+  <div class="container">
+    <h1>Admin dashboard</h1>
+    <p style="color:var(--muted); margin-bottom:24px;">View platform reports, manage disputes, and flag suspicious users.</p>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="overview">Platform reports</button>
+      <button class="tab-btn" data-tab="disputes">Disputes</button>
+      <button class="tab-btn" data-tab="users">Users</button>
+      <button class="tab-btn" data-tab="orders">Orders</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-overview">
+      <div class="grid">
+        <div class="card"><h3 id="stat-users">0</h3><p>Registered students</p></div>
+        <div class="card"><h3 id="stat-listings">0</h3><p>Active listings</p></div>
+        <div class="card"><h3 id="stat-open">0</h3><p>Open disputes</p></div>
+        <div class="card"><h3 id="stat-flagged">0</h3><p>Flagged users</p></div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-disputes">
+      <table>
+        <thead><tr><th>ID</th><th>Reporter</th><th>Reported user</th><th>Reason</th><th>Status</th><th></th></tr></thead>
+        <tbody id="reports-table"></tbody>
+      </table>
+    </div>
+
+    <div class="tab-panel" id="tab-users">
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Campus</th><th>Role</th><th>Status</th><th></th></tr></thead>
+        <tbody id="users-table"></tbody>
+      </table>
+    </div>
+
+    <div class="tab-panel" id="tab-orders">
+      <table>
+        <thead><tr><th>Order</th><th>Item</th><th>Type</th><th>Buyer</th><th>Seller</th><th>Amount</th><th>Platform fee</th></tr></thead>
+        <tbody id="orders-table"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">TUT TextSwap — Phase 1 prototype · Admin area</div>
+</footer>
+
+<script src="js/firebase-config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/app.js"></script>
+<script>
+const session = DB.requireAdmin();
+
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+  });
+});
+
+function renderStats() {
+  const users = DB.getAllUsers();
+  const listings = DB.getListings();
+  const reports = DB.getReports();
+  document.getElementById("stat-users").textContent = users.length;
+  document.getElementById("stat-listings").textContent = listings.length;
+  document.getElementById("stat-open").textContent = reports.filter(r => r.status === "open").length;
+  document.getElementById("stat-flagged").textContent = users.filter(u => u.flagged).length;
+}
+
+function renderReports() {
+  const reports = DB.getReports();
+  const tbody = document.getElementById("reports-table");
+  if (reports.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No reports filed.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = reports.map(r => `
+    <tr>
+      <td>${r.id}</td>
+      <td>${r.reporterEmail}</td>
+      <td>${r.targetEmail}</td>
+      <td>${r.reason}</td>
+      <td class="${r.status === 'open' ? 'status-open' : 'status-resolved'}">${r.status}</td>
+      <td>
+        ${r.status === 'open' ? `<button class="btn btn-navy" style="padding:6px 12px; font-size:0.8rem;" onclick="resolveReport('${r.id}')">Resolve</button>
+        <button class="btn btn-danger" style="padding:6px 12px; font-size:0.8rem;" onclick="flagUser('${r.targetEmail}')">Flag user</button>` : "—"}
+      </td>
+    </tr>`).join("");
+}
+
+function renderUsers() {
+  const users = DB.getAllUsers();
+  const tbody = document.getElementById("users-table");
+  tbody.innerHTML = users.map(u => `
+    <tr>
+      <td>${u.name}</td>
+      <td>${u.email}</td>
+      <td>${u.campus}</td>
+      <td>${u.role}</td>
+      <td class="${u.flagged ? 'status-open' : 'status-resolved'}">${u.flagged ? 'Flagged' : 'Active'}</td>
+      <td>
+        ${u.role !== 'admin' ? (u.flagged
+          ? `<button class="btn btn-navy" style="padding:6px 12px; font-size:0.8rem;" onclick="unflagUser('${u.email}')">Unflag</button>`
+          : `<button class="btn btn-danger" style="padding:6px 12px; font-size:0.8rem;" onclick="flagUser('${u.email}')">Flag</button>`) : "—"}
+      </td>
+    </tr>`).join("");
+}
+
+function renderOrders() {
+  const orders = DB.getOrders();
+  const tbody = document.getElementById("orders-table");
+  if (orders.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No orders yet.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = orders.map(o => `
+    <tr>
+      <td>${o.id}</td>
+      <td>${o.listingTitle}</td>
+      <td>${o.listingType === 'rent' ? 'Rent' : 'Sale'}</td>
+      <td>${o.buyerEmail}</td>
+      <td>${o.sellerEmail}</td>
+      <td>R${o.amount.toFixed(2)}</td>
+      <td>R${o.platformFee.toFixed(2)}</td>
+    </tr>`).join("");
+}
+
+function resolveReport(id) { DB.resolveReport(id); refresh(); }
+function flagUser(email) { DB.flagUser(email); refresh(); }
+function unflagUser(email) { DB.unflagUser(email); refresh(); }
+
+function refresh() { renderStats(); renderReports(); renderUsers(); renderOrders(); }
+document.addEventListener("DOMContentLoaded", refresh);
+</script>
+</body>
+</html>

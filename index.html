@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TUT TextSwap — Buy, sell, rent &amp; swap with TUT students</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="container">
+    <div class="brand">TUT TextSwap<span class="dot">.</span></div>
+    <div class="navlinks">
+      <a href="index.html" class="active">Home</a>
+      <a href="browse.html">Browse</a>
+      <a href="sell.html">Sell an item</a>
+      <span id="nav-user"></span>
+      <a href="register.html" class="pill">Join free</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="container">
+    <div class="section-label">TUT students only</div>
+    <h1>Textbooks cost less when they're already on campus.</h1>
+    <p class="lead">TUT TextSwap is a secure marketplace where TUT students buy, sell, rent and swap textbooks, laptops and equipment — directly with each other, at a fair price.</p>
+    <div style="margin-top:24px; display:flex; gap:12px; flex-wrap:wrap;">
+      <a href="register.html" class="btn btn-primary">Create your account</a>
+      <a href="browse.html" class="btn btn-outline">Browse listings</a>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><b>R1,500+</b><span>average cost per student, per semester, on new books</span></div>
+      <div class="stat"><b>60,000+</b><span>students across 5 TUT campuses</span></div>
+      <div class="stat"><b>5%</b><span>the only fee — charged on completed trades, never on listing</span></div>
+    </div>
+  </div>
+</header>
+
+<section class="alt">
+  <div class="container">
+    <div class="section-label">The problem</div>
+    <h2>Older students already own what first-years need</h2>
+    <p style="max-width:640px; color:var(--muted);">First-year ICT students face real financial strain from prescribed textbook costs, while students a year or two ahead already own the same resources — unused. TUT TextSwap closes that gap.</p>
+    <div class="grid" style="margin-top:24px;">
+      <div class="card"><h3>High upfront cost</h3><p>Textbooks are priced beyond many first-year budgets.</p></div>
+      <div class="card"><h3>Wasted resources</h3><p>Older students' materials sit unused after modules end.</p></div>
+      <div class="card"><h3>No trusted channel</h3><p>There's no safe, TUT-only way to trade resources directly — until now.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-label">How it works</div>
+    <h2>Three steps, no strangers off-campus</h2>
+    <div class="grid" style="margin-top:24px;">
+      <div class="card"><h3>1. Verify your TUT email</h3><p>Sign up with your @tut4life.ac.za address — every account is a real, checked TUT student.</p></div>
+      <div class="card"><h3>2. Browse or list</h3><p>Search for what you need, or list what you no longer use for sale, rent or swap.</p></div>
+      <div class="card"><h3>3. Trade with confidence</h3><p>Message the other student directly. AI Support is on hand for questions, and flags anything that looks like a scam.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="container two-col">
+    <div>
+      <div class="section-label">Our edge</div>
+      <h2>Not another generic marketplace</h2>
+      <p style="color:var(--muted);">Unlike Facebook groups or global platforms like Chegg or Course Hero, TUT TextSwap is built only for TUT students, around TUT modules and TUT prices — with AI-backed safety none of them offer.</p>
+    </div>
+    <div class="grid" style="grid-template-columns:1fr 1fr;">
+      <div class="card"><h3>TUT-only access</h3><p>Verified @tut4life.ac.za students only.</p></div>
+      <div class="card"><h3>AI-backed safety</h3><p>24/7 support and scam detection.</p></div>
+      <div class="card"><h3>Local pricing</h3><p>Built around TUT courses, not a generic catalogue.</p></div>
+      <div class="card"><h3>Physical resources</h3><p>Textbooks, laptops &amp; equipment students actually need.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    TUT TextSwap — Phase 1 prototype · Reducing cost. Reusing resources. Building a sustainable student economy.
+  </div>
+</footer>
+
+<button id="chat-toggle" aria-label="Open AI Support chat">💬</button>
+<div id="chat-window">
+  <div id="chat-header"><span>AI Support</span><button id="chat-close">✕</button></div>
+  <div id="chat-log"></div>
+  <form id="chat-form" style="display:flex;" >
+    <div id="chat-input-row" style="display:flex; width:100%;">
+      <input id="chat-input" type="text" placeholder="Ask a question…" autocomplete="off">
+      <button type="button" id="chat-mic" title="Record a voice message">🎤</button>
+      <button type="submit">Send</button>
+    </div>
+  </form>
+</div>
+
+<script src="js/firebase-config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

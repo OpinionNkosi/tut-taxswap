@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browse listings — TUT TextSwap</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="container">
+    <div class="brand">TUT TextSwap<span class="dot">.</span></div>
+    <div class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="browse.html" class="active">Browse</a>
+      <a href="sell.html">Sell an item</a>
+      <span id="nav-user"></span>
+    </div>
+  </div>
+</nav>
+
+<section>
+  <div class="container">
+    <h1>Browse listings</h1>
+    <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:24px;">
+      <input id="search" type="text" placeholder="Search by title…" style="max-width:280px;">
+      <select id="category-filter" style="max-width:180px;">
+        <option value="">All categories</option>
+        <option value="Textbook">Textbook</option>
+        <option value="Equipment">Equipment</option>
+        <option value="Laptop">Laptop</option>
+      </select>
+    </div>
+    <div id="listings" class="grid"></div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">TUT TextSwap — Phase 1 prototype</div>
+</footer>
+
+<button id="chat-toggle" aria-label="Open AI Support chat">💬</button>
+<div id="chat-window">
+  <div id="chat-header"><span>AI Support</span><button id="chat-close">✕</button></div>
+  <div id="chat-log"></div>
+  <form id="chat-form" style="display:flex;">
+    <div id="chat-input-row" style="display:flex; width:100%;">
+      <input id="chat-input" type="text" placeholder="Ask a question…" autocomplete="off">
+      <button type="button" id="chat-mic" title="Record a voice message">🎤</button>
+      <button type="submit">Send</button>
+    </div>
+  </form>
+</div>
+
+<script src="js/firebase-config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/app.js"></script>
+<script>
+function typeIcon(type) {
+  return { sale: "📘", rent: "📖", swap: "🔁" }[type] || "📦";
+}
+
+function renderListings() {
+  const search = document.getElementById("search").value;
+  const category = document.getElementById("category-filter").value;
+  const listings = DB.getListings({ search, category });
+  const wrap = document.getElementById("listings");
+
+  if (listings.length === 0) {
+    wrap.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">No listings match yet. Try a different search, or <a href="sell.html">list the first item</a>.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = listings.map(l => {
+    const seller = DB.getAllUsers().find(u => u.email === l.sellerEmail);
+    const thumb = l.coverImage
+      ? `<img class="listing-cover" src="${l.coverImage}" alt="${l.title} cover">`
+      : `<div class="listing-thumb">${typeIcon(l.type)}</div>`;
+    return `
+      <div class="listing-card">
+        ${thumb}
+        <div class="listing-body">
+          <span class="badge ${l.type === 'rent' ? 'rent' : l.type === 'sale' ? 'sale' : ''}">${l.type.toUpperCase()}</span>
+          <h3>${l.title}</h3>
+          <div class="listing-price">R${l.price}${l.type === 'rent' ? ' / semester' : ''}</div>
+          <div class="listing-meta">${l.category} · listed by ${seller ? seller.name : 'a TUT student'} (${seller ? seller.campus : ''})</div>
+          <p style="color:var(--muted); font-size:0.85rem;">${l.description}</p>
+          ${l.type === 'swap'
+            ? `<button class="btn btn-navy btn-block" style="margin-top:8px;" onclick="contactSeller('${l.sellerEmail}', '${l.title.replace(/'/g, "\\'")}')">Propose a swap</button>`
+            : `<a class="btn btn-primary btn-block" style="margin-top:8px;" href="checkout.html?id=${l.id}">${l.type === 'rent' ? 'Rent now' : 'Buy now'} — R${l.price}</a>`}
+        </div>
+      </div>`;
+  }).join("");
+}
+
+function contactSeller(email, title) {
+  const session = DB.currentSession();
+  if (!session) { alert("Log in first to contact a seller."); window.location.href = "login.html"; return; }
+  alert(`In the full build, this opens a message thread with ${email} about "${title}". For now: an automated email would be sent to the seller, per the platform's IPO design.`);
+}
+
+document.getElementById("search").addEventListener("input", renderListings);
+document.getElementById("category-filter").addEventListener("change", renderListings);
+document.addEventListener("DOMContentLoaded", renderListings);
+</script>
+</body>
+</html>

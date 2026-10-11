@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Log in — TUT TextSwap</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="container">
+    <div class="brand">TUT TextSwap<span class="dot">.</span></div>
+    <div class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="browse.html">Browse</a>
+      <a href="sell.html">Sell an item</a>
+      <span id="nav-user"></span>
+    </div>
+  </div>
+</nav>
+
+<section>
+  <div class="container">
+    <h1 style="text-align:center;">Log in</h1>
+    <form id="login-form" class="form-card">
+      <label for="email">Email</label>
+      <input id="email" type="email" required placeholder="yourname@tut4life.ac.za">
+
+      <label for="password">Password</label>
+      <input id="password" type="password" required>
+
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top:20px;">Log in</button>
+      <div id="form-msg" class="form-msg"></div>
+    </form>
+
+    <p style="text-align:center; margin-top:16px; color:var(--muted);">No account yet? <a href="register.html">Create one</a></p>
+
+    <div class="note-box" style="max-width:460px; margin:24px auto 0;">
+      <strong>For the developer — demo logins (prototype database only):</strong><br>
+      Admin: <code>admin@tuttextswap.co.za</code> / <code>Admin@2026</code><br>
+      Student: <code>thabo.m@tut4life.ac.za</code> / <code>Student123</code><br>
+      Full details and how to replace these before going live are in README.md.
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">TUT TextSwap — Phase 1 prototype</div>
+</footer>
+
+<script src="js/firebase-config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/app.js"></script>
+<script>
+document.getElementById("login-form").addEventListener("submit", function (e) {
+  e.preventDefault();
+  const msg = document.getElementById("form-msg");
+  const result = DB.login(
+    document.getElementById("email").value.trim(),
+    document.getElementById("password").value
+  );
+  if (result.ok) {
+    window.location.href = result.user.role === "admin" ? "admin.html" : "browse.html";
+  } else {
+    msg.textContent = result.error;
+    msg.className = "form-msg show error";
+  }
+});
+</script>
+</body>
+</html>
